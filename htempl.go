@@ -55,11 +55,13 @@ func main() {
 			for _, fn := range fnArray.([]interface{}) {
 				templateFiles = append(templateFiles, fn.(string))
 			}
-		}
-		templ, err = templ.ParseFiles(templateFiles...)
-		if err != nil {
-			panic(err)
-		}
+        }
+        if len(templateFiles) > 0 {
+		    templ, err = templ.ParseFiles(templateFiles...)
+		    if err != nil {
+			    panic(err)
+            }
+        }
 		// Why is there no function to parse from an io.Reader?
 		main, err := ioutil.ReadAll(body)
 		if err != nil {
