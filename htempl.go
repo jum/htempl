@@ -11,7 +11,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"gopkg.in/yaml.v2"
+    "gopkg.in/yaml.v2"
+    "github.com/russross/blackfriday"
 )
 
 const (
@@ -36,7 +37,14 @@ func main() {
 			panic(err)
 		}
 		vars := make(map[string]interface{})
-		templ := template.New("htempl")
+		templ := template.New("htempl").Funcs(template.FuncMap{
+            "md2html": func(value string) template.HTML {
+                return template.HTML(blackfriday.MarkdownCommon([]byte(value)))
+            },
+            "htmlattr": func(value string) template.HTMLAttr {
+                return template.HTMLAttr(value)
+            },
+        })
 		if header != nil {
 			dec := yaml.NewDecoder(header)
 			err = dec.Decode(&vars)
