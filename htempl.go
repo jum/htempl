@@ -54,6 +54,9 @@ func processFile(fname string) error {
 		"htmlattr": func(value string) template.HTMLAttr {
 			return template.HTMLAttr(value)
 		},
+		"safehtml": func(value string) template.HTML {
+			return template.HTML(value)
+		},
 	})
 	if header != nil {
 		dec := yaml.NewDecoder(header)

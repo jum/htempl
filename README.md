@@ -33,3 +33,4 @@ There are a few special functions in the FuncMap of the template that can be use
 
 * htmlattr(string) convert string into a HTML attribute for dynamically constructing HTML attributes.
 * md2html(string) convert string in markdown syntax into HTML using the blackfriday markdown parser.
+* safehtml(sring) convert string to HTML that is not escaped by the default html/template escaping.
