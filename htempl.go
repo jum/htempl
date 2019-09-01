@@ -51,14 +51,39 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-			//fmt.Printf("Header vars: %#v\n", vars)
+        }
+        var includeFiles []string
+		fn, ok := vars["include"]
+		if ok {
+			includeFiles = append(includeFiles, fn.(string))
 		}
-		var templateFiles []string
-		fn, ok := vars["template"]
+		fnArray, ok := vars["includes"]
+		if ok {
+			for _, fn := range fnArray.([]interface{}) {
+				includeFiles = append(includeFiles, fn.(string))
+			}
+        }
+        if len(includeFiles) > 0 {
+            for _, fn := range includeFiles {
+                f, err := os.Open(fn)
+                if err != nil {
+                    panic(err)
+                }
+                dec := yaml.NewDecoder(f)
+                err = dec.Decode(&vars)
+                if err != nil {
+                    panic(err)
+                }
+                f.Close()
+            }
+        }
+		//fmt.Printf("Header vars: %#v\n", vars)
+        var templateFiles []string
+		fn, ok = vars["template"]
 		if ok {
 			templateFiles = append(templateFiles, fn.(string))
 		}
-		fnArray, ok := vars["templates"]
+		fnArray, ok = vars["templates"]
 		if ok {
 			for _, fn := range fnArray.([]interface{}) {
 				templateFiles = append(templateFiles, fn.(string))
