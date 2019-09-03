@@ -26,7 +26,7 @@ template: site.templ
 ...
 {{.title}}
 template text appended to site.templ and executed with the yaml data as dot.
-{{template "site"}}
+{{template "site" .}}
 ```
 
 There are a few special functions in the FuncMap of the template that can be used:
