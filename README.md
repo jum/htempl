@@ -31,6 +31,9 @@ template text appended to site.templ and executed with the yaml data as dot.
 
 There are a few special functions in the FuncMap of the template that can be used:
 
-* htmlattr(string) convert string into a HTML attribute for dynamically constructing HTML attributes.
-* md2html(string) convert string in markdown syntax into HTML using the blackfriday markdown parser.
+* safeattr(string) convert string into a HTML attribute for dynamically constructing HTML attributes.
 * safehtml(sring) convert string to HTML that is not escaped by the default html/template escaping.
+* safejs(string) convert string to javascript that is not escaped.
+* safecss(string) convert string to css that is not escaped.
+* safeurl(string) convert string to an url that is not escaped.
+* md2html(string) convert string in markdown syntax into HTML using the blackfriday markdown parser.

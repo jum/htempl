@@ -51,11 +51,20 @@ func processFile(fname string) error {
 		"md2html": func(value string) template.HTML {
 			return template.HTML(blackfriday.MarkdownCommon([]byte(value)))
 		},
-		"htmlattr": func(value string) template.HTMLAttr {
+		"safeattr": func(value string) template.HTMLAttr {
 			return template.HTMLAttr(value)
 		},
 		"safehtml": func(value string) template.HTML {
 			return template.HTML(value)
+		},
+		"safejs": func(value string) template.JS {
+			return template.JS(value)
+		},
+		"safecss": func(value string) template.CSS {
+			return template.CSS(value)
+		},
+		"safeurl": func(value string) template.URL {
+			return template.URL(value)
 		},
 	})
 	if header != nil {
