@@ -21,7 +21,8 @@ const (
 )
 
 var (
-	dest = flag.String("dest", ".", "Destination directory")
+	dest   = flag.String("dest", ".", "Destination directory")
+	suffix = flag.String("suffix", "html", "Default suffix for generated files")
 )
 
 func main() {
@@ -127,7 +128,7 @@ func processFile(fname string) error {
 		return err
 	}
 	ext := filepath.Ext(fname)
-	dname := filepath.Join(*dest, fname[0:len(fname)-len(ext)]+".html")
+	dname := filepath.Join(*dest, fname[0:len(fname)-len(ext)]+"."+*suffix)
 	out, err := os.Create(dname)
 	if err != nil {
 		return err
