@@ -1,0 +1,101 @@
+htempl - simple static html page construction
+https://github.com/jum/htempl
+5 Sep 2019
+Tags: templates golang
+
+Jens-Uwe Mager
+Hannover Golang Meetup
+jum@anubis.han.de
+https://www.weathertrack.us/
+@jum
+
+* Hannover Gophers September 2019
+
+.image hannover_gophers.jpeg
+
+* Why another static site generator?
+
+- Very simple (only ~184 lines in one .go file)
+- Not dependent on a complicated directory structure
+- Not a complicated setup (no npm!)
+- Could easily be done using M4, but M4 has no special facilities for html
+- Easy migration, "cp file.html file.htempl" should give identical results (exception mustache templates, they need escaping)
+- Go has excellent capabilities for html in the form of the html/template package
+- two pronged concept has data (yaml) and templates in one file
+
+* Structure of the .htempl file
+
+- The first part contains a YAML block with data definitions that are made available as "." variables to the template.
+
+  ...
+  variable: value
+  ---
+
+- All text following the "---" delimiter are assumed to be go template text.
+
+  ...
+  variable: value
+  ---
+  {{.variable}}
+
+* Special variables
+
+Certain variables are used by the htempl program to modify its behaviour:
+
+- the variables template and templates are used to include a single template or a list of template files before the main part in the .htempl file
+- the variables include and includes can be used to read a single or a list of YAML files for further data (this is not recursive currently)
+
+  ...
+  title: Test page
+  include: "moredata.yaml"
+  template: "site.templ"
+  ---
+  {{- template "page" . -}}
+
+* Special functions defined in the FuncMap
+
+- safeattr(string)
+- safehtml(string)
+- safejs(string)
+- safecss(string)
+- safeurl(string)
+
+These can be used to circumvent html/template context aware escaping.
+
+* Markdown processing
+
+The FuncMap also contains the function md2html(string) that can be used for rendering more textually oriented pages using the blackfriday markdown package:
+
+  ...
+  title: Markdown page
+  template: site.templ
+  ---
+  {{define "content"}}
+  {{md2html `
+  # Header text
+
+  Lorem ipsum...
+
+  ## Subheading
+
+  another paragraph
+  `}}
+  {{end}}
+  {{- template "page" . -}}
+
+* Invocation
+
+Building a complete static site out of template files can be done using a single command invocation. Assuming a file structure like this:
+
+  - directory html
+    - site assets (js/images/etc)
+  - directory htempl
+    - site.templ
+    - index.htempl
+    - subdira
+      - index.htempl
+      - pageb.htempl
+
+can be build using a single command while the working directory is the htempl directory:
+
+  htempl -dest ../html *.htempl **/*.htempl
