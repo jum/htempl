@@ -3,7 +3,7 @@
 A simple command to generate HTML files using go templates.
 
 ```sh
-htempl -d destdir *.htempl
+htempl -dest destdir -suffix html *.htempl
 ```
 
 Each .htempl file contains a yaml fragment with variable definitions. A few variables have a special meaning:
@@ -37,3 +37,5 @@ There are a few special functions in the FuncMap of the template that can be use
 * safecss(string) convert string to css that is not escaped.
 * safeurl(string) convert string to an url that is not escaped.
 * md2html(string) convert string in markdown syntax into HTML using the blackfriday markdown parser.
+
+A recent talk on htempl for the Hannover golang meeting in the subdirctory slides. To view the slides online: https://go-talks.appspot.com/github.com/jum/htempl/slides/htempl.slide
