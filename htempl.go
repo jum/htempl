@@ -49,6 +49,17 @@ func processFile(fname string) error {
 	}
 	vars := make(map[string]interface{})
 	templ := template.New("htempl").Funcs(template.FuncMap{
+		"withDefault": func(m map[interface{}]interface{}, key string, value interface{}) map[interface{}]interface{} {
+			if len(key) == 0 || value == nil {
+				return m
+			}
+			nm := make(map[interface{}]interface{})
+			nm[key] = value
+			for k, v := range m {
+				nm[k] = v
+			}
+			return nm
+		},
 		"md2html": func(value string) template.HTML {
 			return template.HTML(blackfriday.MarkdownCommon([]byte(value)))
 		},
