@@ -21,14 +21,17 @@ const (
 )
 
 var (
-	dest   = flag.String("dest", ".", "Destination directory")
-	suffix = flag.String("suffix", "html", "Default suffix for generated files")
+	dest    = flag.String("dest", ".", "Destination directory")
+	suffix  = flag.String("suffix", "html", "Default suffix for generated files")
+	verbose = flag.Bool("verbose", false, "verbose debugging output")
 )
 
 func main() {
 	flag.Parse()
 	for _, fname := range flag.Args() {
-		//fmt.Printf("working on %s\n", fname)
+		if *verbose {
+			fmt.Printf("working on %s\n", fname)
+		}
 		err := processFile(fname)
 		if err != nil {
 			err = fmt.Errorf("%v: %w", fname, err)
@@ -40,14 +43,13 @@ func main() {
 func processFile(fname string) error {
 	in, err := os.Open(fname)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer in.Close()
 	header, body, err := splitHeader(in)
 	if err != nil {
 		return err
 	}
-	vars := make(map[string]interface{})
 	templ := template.New("htempl").Funcs(template.FuncMap{
 		"withDefault": func(m map[interface{}]interface{}, key string, value interface{}) map[interface{}]interface{} {
 			if len(key) == 0 || value == nil {
@@ -79,51 +81,40 @@ func processFile(fname string) error {
 			return template.URL(value)
 		},
 	})
+	vars := make(map[string]interface{})
+	var includeFiles []string
+	var templateFiles []string
 	if header != nil {
-		dec := yaml.NewDecoder(header)
-		err = dec.Decode(&vars)
+		includeFiles, templateFiles, vars, err = processYamlVars(header)
 		if err != nil {
 			return err
 		}
 	}
-	var includeFiles []string
-	fn, ok := vars["include"]
-	if ok {
-		includeFiles = append(includeFiles, fn.(string))
+	if *verbose {
+		fmt.Printf("initial vars %v\n", vars)
 	}
-	fnArray, ok := vars["includes"]
-	if ok {
-		for _, fn := range fnArray.([]interface{}) {
-			includeFiles = append(includeFiles, fn.(string))
+	for len(includeFiles) > 0 {
+		var fn string
+		fn, includeFiles = includeFiles[0], includeFiles[1:]
+		f, err := os.Open(fn)
+		if err != nil {
+			return err
 		}
-	}
-	if len(includeFiles) > 0 {
-		for _, fn := range includeFiles {
-			f, err := os.Open(fn)
-			if err != nil {
-				return err
-			}
-			dec := yaml.NewDecoder(f)
-			err = dec.Decode(&vars)
-			if err != nil {
-				return err
-			}
-			f.Close()
+		nincs, ntempls, nvars, err := processYamlVars(f)
+		f.Close()
+		includeFiles = append(includeFiles, nincs...)
+		templateFiles = append(ntempls, templateFiles...)
+		for k, v := range nvars {
+			vars[k] = v
 		}
-	}
-	//fmt.Printf("Header vars: %#v\n", vars)
-	var templateFiles []string
-	fn, ok = vars["template"]
-	if ok {
-		templateFiles = append(templateFiles, fn.(string))
-	}
-	fnArray, ok = vars["templates"]
-	if ok {
-		for _, fn := range fnArray.([]interface{}) {
-			templateFiles = append(templateFiles, fn.(string))
+		if *verbose {
+			fmt.Printf("vars after including %s: %v\n", fn, vars)
 		}
 	}
 	if len(templateFiles) > 0 {
+		if *verbose {
+			fmt.Printf("parsing templates %v\n", templateFiles)
+		}
 		templ, err = templ.ParseFiles(templateFiles...)
 		if err != nil {
 			return err
@@ -149,6 +140,42 @@ func processFile(fname string) error {
 		return err
 	}
 	return out.Close()
+}
+
+func processYamlVars(f io.Reader) (includes []string, templates []string, otherVars map[string]interface{}, err error) {
+	var includeFiles []string
+	var templateFiles []string
+	vars := make(map[string]interface{})
+	dec := yaml.NewDecoder(f)
+	err = dec.Decode(&vars)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	fn, ok := vars["include"]
+	if ok {
+		includeFiles = append(includeFiles, fn.(string))
+		delete(vars, "include")
+	}
+	fnArray, ok := vars["includes"]
+	if ok {
+		for _, fn := range fnArray.([]interface{}) {
+			includeFiles = append(includeFiles, fn.(string))
+		}
+		delete(vars, "includes")
+	}
+	fn, ok = vars["template"]
+	if ok {
+		templateFiles = append(templateFiles, fn.(string))
+		delete(vars, "template")
+	}
+	fnArray, ok = vars["templates"]
+	if ok {
+		for _, fn := range fnArray.([]interface{}) {
+			templateFiles = append(templateFiles, fn.(string))
+		}
+		delete(vars, "templates")
+	}
+	return includeFiles, templateFiles, vars, nil
 }
 
 func splitHeader(in io.Reader) (header, body io.Reader, err error) {

@@ -13,7 +13,7 @@ Each .htempl file contains a yaml fragment with variable definitions. A few vari
 * template: Include templates from the named file.
 * templates: Include the template from all of the named files.
 
-All variables are available as "." variables while executing the template. Please note that include and includes only work in the top level yaml fragment, not in included ones.
+All variables are available as "." variables while executing the template.
 
 The remainder of the file after the yaml block is appended to the other templates to build the final template and write a file with the same name but using the suffix .html. The destdir parameter can be used to place the generated html files in a different directory.
 
