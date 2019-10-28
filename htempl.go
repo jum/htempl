@@ -105,7 +105,17 @@ func processFile(fname string) error {
 		includeFiles = append(includeFiles, nincs...)
 		templateFiles = append(ntempls, templateFiles...)
 		for k, v := range nvars {
-			vars[k] = v
+			if oldval, ok := vars[k]; ok {
+				oldarray, isArrayOld := oldval.([]interface{})
+				newarray, isArrayNew := v.([]interface{})
+				if isArrayOld && isArrayNew {
+					vars[k] = append(oldarray, newarray...)
+				} else {
+					vars[k] = v
+				}
+			} else {
+				vars[k] = v
+			}
 		}
 		if *verbose {
 			fmt.Printf("vars after including %s: %v\n", fn, vars)
