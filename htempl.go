@@ -63,7 +63,7 @@ func processFile(fname string) error {
 			return nm
 		},
 		"md2html": func(value string) template.HTML {
-			return template.HTML(blackfriday.MarkdownCommon([]byte(value)))
+			return template.HTML(blackfriday.Run([]byte(value), blackfriday.WithExtensions(blackfriday.AutoHeadingIDs)))
 		},
 		"safeattr": func(value string) template.HTMLAttr {
 			return template.HTMLAttr(value)
