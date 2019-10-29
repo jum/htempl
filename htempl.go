@@ -103,7 +103,7 @@ func processFile(fname string) error {
 		nincs, ntempls, nvars, err := processYamlVars(f)
 		f.Close()
 		includeFiles = append(includeFiles, nincs...)
-		templateFiles = append(ntempls, templateFiles...)
+		templateFiles = append(templateFiles, ntempls...)
 		for k, v := range nvars {
 			if oldval, ok := vars[k]; ok {
 				oldarray, isArrayOld := oldval.([]interface{})
