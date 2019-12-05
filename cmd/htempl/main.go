@@ -24,7 +24,8 @@ func main() {
 		err := processFile(fname)
 		if err != nil {
 			err = fmt.Errorf("%v: %w", fname, err)
-			panic(err)
+			fmt.Fprintf(os.Stderr, "htempl: %v\n", err)
+			os.Exit(1)
 		}
 	}
 }
