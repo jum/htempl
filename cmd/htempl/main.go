@@ -31,6 +31,9 @@ func main() {
 
 func processFile(fname string) error {
 	templ, err := htempl.New(fname)
+	if err != nil {
+		return err
+	}
 	ext := filepath.Ext(fname)
 	dname := filepath.Join(*dest, fname[0:len(fname)-len(ext)]+"."+*suffix)
 	out, err := os.Create(dname)
