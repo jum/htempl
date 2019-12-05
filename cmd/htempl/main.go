@@ -9,11 +9,6 @@ import (
 	"github.com/jum/htempl"
 )
 
-const (
-	yamlStart = "---\n"
-	yamlEnd   = "...\n"
-)
-
 var (
 	dest    = flag.String("dest", ".", "Destination directory")
 	suffix  = flag.String("suffix", "html", "Default suffix for generated files")
