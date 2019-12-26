@@ -10,7 +10,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/russross/blackfriday"
+	"github.com/gomarkdown/markdown"
 	"gopkg.in/yaml.v2"
 )
 
@@ -53,7 +53,7 @@ func New(fname string) (*HTempl, error) {
 			return nm
 		},
 		"md2html": func(value string) template.HTML {
-			return template.HTML(blackfriday.Run([]byte(value), blackfriday.WithExtensions(blackfriday.AutoHeadingIDs)))
+			return template.HTML(markdown.ToHTML([]byte(value), nil, nil))
 		},
 		"safeattr": func(value string) template.HTMLAttr {
 			return template.HTMLAttr(value)
