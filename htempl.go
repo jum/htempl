@@ -27,8 +27,46 @@ type HTempl struct {
 	Template *template.Template
 }
 
-// New parses a YAML/template file combination
+// DefaultTemplFuncs are the default function mapping for New.
+var DefaultTemplFuncs template.FuncMap = template.FuncMap{
+	"withDefault": func(m map[interface{}]interface{}, key string, value interface{}) map[interface{}]interface{} {
+		if len(key) == 0 || value == nil {
+			return m
+		}
+		nm := make(map[interface{}]interface{})
+		nm[key] = value
+		for k, v := range m {
+			nm[k] = v
+		}
+		return nm
+	},
+	"md2html": func(value string) template.HTML {
+		return template.HTML(markdown.ToHTML([]byte(value), nil, nil))
+	},
+	"safeattr": func(value string) template.HTMLAttr {
+		return template.HTMLAttr(value)
+	},
+	"safehtml": func(value string) template.HTML {
+		return template.HTML(value)
+	},
+	"safejs": func(value string) template.JS {
+		return template.JS(value)
+	},
+	"safecss": func(value string) template.CSS {
+		return template.CSS(value)
+	},
+	"safeurl": func(value string) template.URL {
+		return template.URL(value)
+	},
+}
+
+// New parses a YAML/template file combination using the default FuncMap
 func New(fname string) (*HTempl, error) {
+	return NewWithTemplFuncs(fname, DefaultTemplFuncs)
+}
+
+// NewWithTemplFuncs parses a YAML/template file combination using the given FuncMap
+func NewWithTemplFuncs(fname string, funcMap template.FuncMap) (*HTempl, error) {
 	in, err := os.Open(fname)
 	if err != nil {
 		return nil, err
@@ -40,37 +78,7 @@ func New(fname string) (*HTempl, error) {
 	}
 	var templ = HTempl{}
 	templ.Vars = make(map[string]interface{})
-	templ.Template = template.New(fname).Funcs(template.FuncMap{
-		"withDefault": func(m map[interface{}]interface{}, key string, value interface{}) map[interface{}]interface{} {
-			if len(key) == 0 || value == nil {
-				return m
-			}
-			nm := make(map[interface{}]interface{})
-			nm[key] = value
-			for k, v := range m {
-				nm[k] = v
-			}
-			return nm
-		},
-		"md2html": func(value string) template.HTML {
-			return template.HTML(markdown.ToHTML([]byte(value), nil, nil))
-		},
-		"safeattr": func(value string) template.HTMLAttr {
-			return template.HTMLAttr(value)
-		},
-		"safehtml": func(value string) template.HTML {
-			return template.HTML(value)
-		},
-		"safejs": func(value string) template.JS {
-			return template.JS(value)
-		},
-		"safecss": func(value string) template.CSS {
-			return template.CSS(value)
-		},
-		"safeurl": func(value string) template.URL {
-			return template.URL(value)
-		},
-	})
+	templ.Template = template.New(fname).Funcs(funcMap)
 	var includeFiles []string
 	var templateFiles []string
 	if header != nil {
