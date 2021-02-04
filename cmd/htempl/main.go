@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -23,7 +22,7 @@ func main() {
 	flag.Parse()
 	// walk the source directory if given
 	if len(*src) > 0 {
-		err := filepath.Walk(*src, func(path string, info fs.FileInfo, err error) error {
+		err := filepath.Walk(*src, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
 				return err
 			}
