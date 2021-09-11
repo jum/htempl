@@ -96,6 +96,9 @@ func NewWithTemplFuncs(fname string, funcMap template.FuncMap) (*HTempl, error) 
 		}
 		nincs, ntempls, nvars, err := processYamlVars(f)
 		f.Close()
+		if err != nil {
+			return nil, err
+		}
 		includeFiles = append(includeFiles, nincs...)
 		templateFiles = append(templateFiles, ntempls...)
 		for k, v := range nvars {
