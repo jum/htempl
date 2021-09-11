@@ -5,6 +5,7 @@ package htempl
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"html/template"
 	"io"
 	"io/ioutil"
@@ -29,6 +30,16 @@ type HTempl struct {
 
 // DefaultTemplFuncs are the default function mapping for New.
 var DefaultTemplFuncs template.FuncMap = template.FuncMap{
+	"map": func(args ...interface{}) (map[string]interface{}, error) {
+		if len(args)&1 == 1 {
+			return nil, fmt.Errorf("map: number of args must be even")
+		}
+		val := make(map[string]interface{})
+		for i := 0; i < len(args); i += 2 {
+			val[args[i].(string)] = args[i+1]
+		}
+		return val, nil
+	},
 	"withDefault": func(m map[interface{}]interface{}, key string, value interface{}) map[interface{}]interface{} {
 		if len(key) == 0 || value == nil {
 			return m
