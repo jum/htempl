@@ -12,7 +12,7 @@ import (
 	"os"
 
 	"github.com/gomarkdown/markdown"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -40,11 +40,11 @@ var DefaultTemplFuncs template.FuncMap = template.FuncMap{
 		}
 		return val, nil
 	},
-	"withDefault": func(m map[interface{}]interface{}, key string, value interface{}) map[interface{}]interface{} {
+	"withDefault": func(m map[string]interface{}, key string, value interface{}) map[string]interface{} {
 		if len(key) == 0 || value == nil {
 			return m
 		}
-		nm := make(map[interface{}]interface{})
+		nm := make(map[string]interface{})
 		nm[key] = value
 		for k, v := range m {
 			nm[k] = v
