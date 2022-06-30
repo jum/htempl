@@ -9,7 +9,12 @@ Each .htempl file contains a yaml fragment with variable definitions. A few vari
 
 All variables are available as "." variables while executing the template.
 
-The remainder of the file after the yaml block is appended to the other templates to build the final template and write a file with the same name but using the suffix .html. The destdir parameter can be used to place the generated html files in a different directory.
+The remainder of the file after the yaml block is appended to the other templates to build the final template. See the package documentation for more details on how to use the library:
+
+https://pkg.go.dev/github.com/jum/htempl
+
+The utility htempl in cmd/htempl can be used to statically generate HTML
+pages from templates as a kind of static site generator.
 
 Example:
 
