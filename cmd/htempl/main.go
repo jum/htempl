@@ -48,7 +48,7 @@ func main() {
 			os.Exit(1)
 		}
 	}
-	// process the explicitely givenvi command line args
+	// process the explicitely given command line args
 	for _, fname := range flag.Args() {
 		if *verbose {
 			fmt.Printf("working on %s\n", fname)
