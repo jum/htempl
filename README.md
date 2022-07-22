@@ -36,5 +36,7 @@ There are a few special functions in the FuncMap of the template that can be use
 * safecss(string) convert string to css that is not escaped.
 * safeurl(string) convert string to an url that is not escaped.
 * md2html(string) convert string in markdown syntax into HTML using the gomarkdown markdown parser.
+* withDefault(m map[string]interface{}, key string, value interface{}) returns the map making sure that the key key is present with the given value as a default.
+* map(args...) args must be an even numbered key and value pairs, map returns the constructed map.
 
 A recent talk on htempl for the Hannover golang meeting in the subdirctory slides. To view the slides online: https://go-talks.appspot.com/github.com/jum/htempl/slides/htempl.slide
