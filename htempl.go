@@ -1,5 +1,3 @@
-// Package htempl combines go html/templates with YAML configuration in one
-// file.
 package htempl
 
 import (
