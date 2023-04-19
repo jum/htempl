@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"html/template"
 	"io"
-	"io/ioutil"
 	"os"
+	"strings"
 
 	"github.com/gomarkdown/markdown"
 	"gopkg.in/yaml.v3"
@@ -131,7 +131,7 @@ func NewWithTemplFuncs(fname string, funcMap template.FuncMap) (*HTempl, error) 
 		}
 	}
 	// Why is there no function to parse from an io.Reader?
-	main, err := ioutil.ReadAll(body)
+	main, err := io.ReadAll(body)
 	if err != nil {
 		return nil, err
 	}
