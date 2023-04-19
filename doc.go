@@ -10,7 +10,7 @@ of the go template section:
 
 # Predefined YAML values
 
-The predefined YAML values are all expected to filenames that are to be
+The predefined YAML values are all expected to be filenames that are to be
 included in the final htmpl document.
 
 	include
@@ -38,7 +38,7 @@ supports the following template functions:
 		The first argument is a map, and the second a name and the third
 		an interfae. The returned map makes sure the name and interface
 		are present in the output map in case the input map does not have
-		a value for name.q
+		a value for name.
 	md2html
 		Returns the result of converting the argument from Markdown to
 		HTML.
