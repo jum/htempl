@@ -74,6 +74,16 @@ func New(fname string) (*HTempl, error) {
 	return NewWithTemplFuncs(fname, DefaultTemplFuncs)
 }
 
+// NewString parses a YAML/template string combination using the default FuncMap
+func NewString(tmplName string, tmplString string) (*HTempl, error) {
+	return NewWithTemplFuncsReader(tmplName, strings.NewReader(tmplString), DefaultTemplFuncs)
+}
+
+// NewReader parses a YAML/template combination using the default FuncMap and the given io.Reader
+func NewReader(tmplName string, in io.Reader) (*HTempl, error) {
+	return NewWithTemplFuncsReader(tmplName, in, DefaultTemplFuncs)
+}
+
 // NewWithTemplFuncs parses a YAML/template file combination using the given FuncMap
 func NewWithTemplFuncs(fname string, funcMap template.FuncMap) (*HTempl, error) {
 	in, err := os.Open(fname)
@@ -81,13 +91,18 @@ func NewWithTemplFuncs(fname string, funcMap template.FuncMap) (*HTempl, error) 
 		return nil, err
 	}
 	defer in.Close()
+	return NewWithTemplFuncsReader(fname, in, funcMap)
+}
+
+// NewWithTemplFuncsReader parses a YAML/template combination using the given FuncMap from the given io.Reader
+func NewWithTemplFuncsReader(tmplName string, in io.Reader, funcMap template.FuncMap) (*HTempl, error) {
 	header, body, err := splitHeader(in)
 	if err != nil {
 		return nil, err
 	}
 	var templ = HTempl{}
 	templ.Vars = make(map[string]interface{})
-	templ.Template = template.New(fname).Funcs(funcMap)
+	templ.Template = template.New(tmplName).Funcs(funcMap)
 	var includeFiles []string
 	var templateFiles []string
 	if header != nil {
