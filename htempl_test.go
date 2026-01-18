@@ -2,7 +2,9 @@ package htempl
 
 import (
 	"bytes"
+	"fmt"
 	"io"
+	"os"
 	"strings"
 	"testing"
 )
@@ -244,13 +246,355 @@ Value
 	}
 }
 
-func TestIncludeError(t *testing.T) {
-	aHTemplContent := `---
-include: non_existent.htempl
----
-{{.foo}}`
-	_, err := NewString("TestIncludeError", aHTemplContent)
+func TestMapError(t *testing.T) {
+	_, err := DefaultTemplFuncs["map"].(func(...interface{}) (map[string]interface{}, error))("foo")
 	if err == nil {
-		t.Errorf("expected an error for non-existent include, but got none")
+		t.Error("expected error for odd number of args")
+	}
+}
+
+func TestWithDefaultEdgeCases(t *testing.T) {
+	m := make(map[string]interface{})
+	f := DefaultTemplFuncs["withDefault"].(func(map[string]interface{}, string, interface{}) map[string]interface{})
+	
+	m1 := f(m, "", "val")
+	if len(m1) != 0 {
+		t.Error("expected empty map for empty key")
+	}
+
+	m2 := f(m, "key", nil)
+	if len(m2) != 0 {
+		t.Error("expected empty map for nil value")
+	}
+}
+
+func TestArrayMerge(t *testing.T) {
+	// Create temporary files for testing include merge
+	includeFile := "test_include_merge.yaml"
+	content := "list:\n  - item2\n"
+	err := os.WriteFile(includeFile, []byte(content), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(includeFile)
+
+	mainContent := `---
+include: test_include_merge.yaml
+list:
+  - item1
+...
+{{range .list}}{{.}}{{end}}`
+	
+	tmpl, err := NewString("TestArrayMerge", mainContent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var buf bytes.Buffer
+	err = tmpl.Template.Execute(&buf, tmpl.Vars)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Note: item2 from include is processed FIRST in NewWithTemplFuncsReader loop
+	// then it's merged into templ.Vars which ALREADY has item1 from the main header.
+	// Wait, let's re-read the code.
+	/*
+	if header != nil {
+		includeFiles, templateFiles, templ.Vars, err = processYamlVars(header)
+	}
+	for len(includeFiles) > 0 {
+		...
+		nincs, ntempls, nvars, err := processYamlVars(f)
+		...
+		for k, v := range nvars {
+			if oldval, ok := templ.Vars[k]; ok {
+				oldarray, isArrayOld := oldval.([]interface{})
+				newarray, isArrayNew := v.([]interface{})
+				if isArrayOld && isArrayNew {
+					templ.Vars[k] = append(oldarray, newarray...)
+				} else {
+					templ.Vars[k] = v
+				}
+			} else {
+				templ.Vars[k] = v
+			}
+		}
+	}
+	*/
+	// Header is processed first, so templ.Vars["list"] = ["item1"]
+	// Then include file is processed, nvars["list"] = ["item2"]
+	// oldarray = ["item1"], newarray = ["item2"]
+	// templ.Vars["list"] = ["item1", "item2"]
+	
+	expected := "item1item2"
+	if buf.String() != expected {
+		t.Errorf("expected %q, got %q", expected, buf.String())
+	}
+}
+
+func TestTemplateKeywords(t *testing.T) {
+	// template and templates keywords
+	content := `---
+template: testdata/simple.htempl
+templates:
+  - testdata/markdown.htempl
+...
+Body`
+	tmpl, err := NewString("TestTemplateKeywords", content)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if tmpl.Template.Lookup("simple.htempl") == nil {
+		t.Error("simple.htempl not found in templates")
+	}
+	if tmpl.Template.Lookup("markdown.htempl") == nil {
+		t.Error("markdown.htempl not found in templates")
+	}
+}
+
+func TestSplitHeaderEdgeCases(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		wantErr bool
+	}{
+		{"ShortInput", "---", true},
+		{"NoEndMarker", "---\nfoo: bar\n", true}, // it returns EOF if it doesn't find ... after \n
+		{"NoHeader", "Body only", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, _, err := splitHeader(strings.NewReader(tt.input))
+			if (err != nil) != tt.wantErr {
+				t.Errorf("splitHeader() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestVarOverwrite(t *testing.T) {
+	// Test overwriting non-array variables in include
+	includeFile := "test_include_overwrite.yaml"
+	content := "var: newvalue\n"
+	err := os.WriteFile(includeFile, []byte(content), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(includeFile)
+
+	mainContent := `---
+include: test_include_overwrite.yaml
+var: oldvalue
+...
+{{.var}}`
+	
+	tmpl, err := NewString("TestVarOverwrite", mainContent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var buf bytes.Buffer
+	err = tmpl.Template.Execute(&buf, tmpl.Vars)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The include's vars overwrite the main ones if they are not both arrays.
+	// Actually, looking at the code:
+	/*
+		for k, v := range nvars {
+			if oldval, ok := templ.Vars[k]; ok {
+				...
+				if isArrayOld && isArrayNew {
+					templ.Vars[k] = append(oldarray, newarray...)
+				} else {
+					templ.Vars[k] = v
+				}
+			} else {
+				templ.Vars[k] = v
+			}
+		}
+	*/
+	// So newvalue should overwrite oldvalue.
+	expected := "newvalue"
+	if buf.String() != expected {
+		t.Errorf("expected %q, got %q", expected, buf.String())
+	}
+}
+
+func TestNewWithTemplFuncs(t *testing.T) {
+	tmpl, err := NewWithTemplFuncs("testdata/simple.htempl", DefaultTemplFuncs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if tmpl == nil {
+		t.Fatal("expected template, got nil")
+	}
+}
+
+func TestNestedIncludes(t *testing.T) {
+	err := os.WriteFile("level2.yaml", []byte("val: final"), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove("level2.yaml")
+	err = os.WriteFile("level1.yaml", []byte("include: level2.yaml"), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove("level1.yaml")
+
+	content := `---
+include: level1.yaml
+...
+{{.val}}`
+	tmpl, err := NewString("TestNestedIncludes", content)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var buf bytes.Buffer
+	err = tmpl.Template.Execute(&buf, tmpl.Vars)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if buf.String() != "final" {
+		t.Errorf("expected final, got %q", buf.String())
+	}
+}
+
+func TestParseFilesError(t *testing.T) {
+	content := `---
+template: non_existent_template.htempl
+...
+Body`
+	_, err := NewString("TestParseFilesError", content)
+	if err == nil {
+		t.Error("expected error for non-existent template file")
+	}
+}
+
+func TestIncludeProcessYamlError(t *testing.T) {
+	err := os.WriteFile("invalid.yaml", []byte("[invalid"), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove("invalid.yaml")
+
+	content := `---
+include: invalid.yaml
+...
+Body`
+	_, err = NewString("TestIncludeProcessYamlError", content)
+	if err == nil {
+		t.Error("expected error for invalid YAML in include")
+	}
+}
+
+type errorReader struct{}
+
+func (e *errorReader) Read(p []byte) (n int, err error) {
+	return 0, fmt.Errorf("forced error")
+}
+
+func TestReaderError(t *testing.T) {
+	_, err := NewReader("Error", &errorReader{})
+	if err == nil {
+		t.Error("expected error from errorReader")
+	}
+}
+
+type errorAtByteReader struct {
+	count int
+}
+
+func (e *errorAtByteReader) Read(p []byte) (n int, err error) {
+	if e.count == 0 {
+		content := "---\n"
+		copy(p, content)
+		e.count++
+		return len(content), nil
+	}
+	return 0, fmt.Errorf("forced error at byte")
+}
+
+func TestSplitHeaderReadByteError(t *testing.T) {
+	_, _, err := splitHeader(&errorAtByteReader{})
+	if err == nil || !strings.Contains(err.Error(), "forced error at byte") {
+		t.Errorf("expected forced error at byte, got %v", err)
+	}
+}
+
+type errorInBodyReader struct {
+	count int
+}
+
+func (e *errorInBodyReader) Read(p []byte) (n int, err error) {
+	if e.count == 0 {
+		content := "---\nfoo: bar\n...\nBody"
+		copy(p, content)
+		e.count++
+		return len(content), nil
+	}
+	return 0, fmt.Errorf("forced error in body")
+}
+
+func TestReaderErrorInBody(t *testing.T) {
+	_, err := NewReader("ErrorInBody", &errorInBodyReader{})
+	if err == nil || !strings.Contains(err.Error(), "forced error in body") {
+		t.Errorf("expected forced error in body, got %v", err)
+	}
+}
+
+func TestIncludesSuccess(t *testing.T) {
+	content := `---
+includes:
+  - testdata/testinclude.yaml
+...
+{{.var}}`
+	tmpl, err := NewString("TestIncludesSuccess", content)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var buf bytes.Buffer
+	err = tmpl.Template.Execute(&buf, tmpl.Vars)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if buf.String() != "Value" {
+		t.Errorf("expected Value, got %q", buf.String())
+	}
+}
+
+func TestSplitHeaderEOFWithoutNewline(t *testing.T) {
+	input := "---\nfoo: bar"
+	header, _, err := splitHeader(strings.NewReader(input))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var buf bytes.Buffer
+	io.Copy(&buf, header)
+	if buf.String() != "foo: bar" {
+		t.Errorf("expected 'foo: bar', got %q", buf.String())
+	}
+}
+
+func TestSplitHeaderNewlineNotEnd(t *testing.T) {
+	input := "---\nfoo\nbar\n...\nBody"
+	header, body, err := splitHeader(strings.NewReader(input))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var hBuf, bBuf bytes.Buffer
+	io.Copy(&hBuf, header)
+	io.Copy(&bBuf, body)
+	if hBuf.String() != "foo\nbar\n" {
+		t.Errorf("expected 'foo\nbar\n', got %q", hBuf.String())
+	}
+	if bBuf.String() != "Body" {
+		t.Errorf("expected 'Body', got %q", bBuf.String())
+	}
+}
+
+func TestNewWithTemplFuncsError(t *testing.T) {
+	_, err := NewWithTemplFuncs("non_existent", DefaultTemplFuncs)
+	if err == nil {
+		t.Error("expected error")
 	}
 }

@@ -19,6 +19,13 @@ var (
 )
 
 func main() {
+	if err := run(); err != nil {
+		fmt.Fprintf(os.Stderr, "htempl: %v\n", err)
+		os.Exit(1)
+	}
+}
+
+func run() error {
 	flag.Parse()
 	// walk the source directory if given
 	if len(*src) > 0 {
@@ -35,17 +42,13 @@ func main() {
 				}
 				err := processFile(path)
 				if err != nil {
-					err = fmt.Errorf("%v: %w", path, err)
-					fmt.Fprintf(os.Stderr, "htempl: %v\n", err)
-					os.Exit(1)
+					return fmt.Errorf("%v: %w", path, err)
 				}
 			}
 			return nil
 		})
 		if err != nil {
-			err = fmt.Errorf("%v: %w", *src, err)
-			fmt.Fprintf(os.Stderr, "htempl: %v\n", err)
-			os.Exit(1)
+			return fmt.Errorf("%v: %w", *src, err)
 		}
 	}
 	// process the explicitely given command line args
@@ -55,11 +58,10 @@ func main() {
 		}
 		err := processFile(fname)
 		if err != nil {
-			err = fmt.Errorf("%v: %w", fname, err)
-			fmt.Fprintf(os.Stderr, "htempl: %v\n", err)
-			os.Exit(1)
+			return fmt.Errorf("%v: %w", fname, err)
 		}
 	}
+	return nil
 }
 
 func processFile(fname string) error {
