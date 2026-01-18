@@ -1,0 +1,13 @@
+---
+title: testinclude
+includes:
+  - testdata/testinclude.yaml
+...
+{{define "helpcontent"}}
+  {{- md2html `
+# Test {#anchor}
+
+Text
+` -}} {{.var}}
+{{end}}
+{{- template "content" . -}}

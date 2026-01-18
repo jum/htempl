@@ -69,9 +69,11 @@ includes:
 			err = got.Template.Execute(&buf, got.Vars)
 			if err != nil {
 				t.Errorf("Executing %v: %v", tt.name, err)
+				return
 			}
 			if buf.String() != tt.want {
 				t.Errorf("NewString() = %v, want %v", buf.String(), tt.want)
+				return
 			}
 		})
 	}
@@ -126,9 +128,11 @@ enabled: true
 			err = got.Template.Execute(&buf, got.Vars)
 			if err != nil {
 				t.Errorf("Executing %v: %v", tt.name, err)
+				return
 			}
 			if buf.String() != tt.want {
 				t.Errorf("NewReader() = %v, want %v", buf.String(), tt.want)
+				return
 			}
 		})
 	}
@@ -158,9 +162,11 @@ func TestNew(t *testing.T) {
 			err = got.Template.Execute(&buf, got.Vars)
 			if err != nil {
 				t.Errorf("Executing %v: %v", tt.name, err)
+				return
 			}
 			if buf.String() != tt.want {
 				t.Errorf("New() = %v, want %v", buf.String(), tt.want)
+				return
 			}
 		})
 	}
@@ -172,9 +178,11 @@ func TestWithDefault(t *testing.T) {
 	m = DefaultTemplFuncs["withDefault"].(func(map[string]interface{}, string, interface{}) map[string]interface{})(m, "baz", "bam")
 	if m["foo"] != "bar" {
 		t.Errorf("foo should be bar but is %v", m["foo"])
+		return
 	}
 	if m["baz"] != "bam" {
 		t.Errorf("baz should be bam but is %v", m["baz"])
+		return
 	}
 }
 
@@ -213,9 +221,26 @@ map:
 }
 
 func TestInclude(t *testing.T) {
-	_, err := New("testdata/a.htempl")
-	if err == nil {
-		t.Errorf("expected an error for New() with includes, but got none")
+	result := `<h1 id="anchor">Test</h1>
+
+<p>Text</p>
+Value
+
+`
+	tmpl, err := New("testdata/testinclude.htempl")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	var buf bytes.Buffer
+	err = tmpl.Template.Execute(&buf, tmpl.Vars)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if buf.String() != result {
+		t.Errorf("expected '%s' but got '%s'", result, buf.String())
+		return
 	}
 }
 

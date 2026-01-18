@@ -1,0 +1,5 @@
+{{define "content"}}
+    {{- block "helpcontent" .}}
+    <div>Override me (help)!</div>
+    {{end}}
+{{end}}

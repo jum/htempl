@@ -1,0 +1,2 @@
+template: "testdata/testinclude1.htempl"
+var: "Value"
