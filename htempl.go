@@ -50,22 +50,22 @@ var DefaultTemplFuncs template.FuncMap = template.FuncMap{
 		return nm
 	},
 	"md2html": func(value string) template.HTML {
-		return template.HTML(markdown.ToHTML([]byte(value), nil, nil))
+		return template.HTML(markdown.ToHTML([]byte(value), nil, nil)) // #nosec G203 -- casting as API
 	},
 	"safeattr": func(value string) template.HTMLAttr {
-		return template.HTMLAttr(value)
+		return template.HTMLAttr(value) // #nosec G203 -- casting as API
 	},
 	"safehtml": func(value string) template.HTML {
-		return template.HTML(value)
+		return template.HTML(value) // #nosec G203 -- casting as API
 	},
 	"safejs": func(value string) template.JS {
-		return template.JS(value)
+		return template.JS(value) // #nosec G203 -- casting as API
 	},
 	"safecss": func(value string) template.CSS {
-		return template.CSS(value)
+		return template.CSS(value) // #nosec G203 -- casting as API
 	},
 	"safeurl": func(value string) template.URL {
-		return template.URL(value)
+		return template.URL(value) // #nosec G203 -- casting as API
 	},
 }
 
@@ -86,11 +86,13 @@ func NewReader(tmplName string, in io.Reader) (*HTempl, error) {
 
 // NewWithTemplFuncs parses a YAML/template file combination using the given FuncMap
 func NewWithTemplFuncs(fname string, funcMap template.FuncMap) (*HTempl, error) {
-	in, err := os.Open(fname)
+	in, err := os.Open(fname) // #nosec G304 -- file is upper layer
 	if err != nil {
 		return nil, err
 	}
-	defer in.Close()
+	defer func() {
+		_ = in.Close()
+	}()
 	return NewWithTemplFuncsReader(fname, in, funcMap)
 }
 
@@ -114,12 +116,12 @@ func NewWithTemplFuncsReader(tmplName string, in io.Reader, funcMap template.Fun
 	for len(includeFiles) > 0 {
 		var fn string
 		fn, includeFiles = includeFiles[0], includeFiles[1:]
-		f, err := os.Open(fn)
+		f, err := os.Open(fn) // #nosec G304 -- file is upper layer
 		if err != nil {
 			return nil, err
 		}
 		nincs, ntempls, nvars, err := processYamlVars(f)
-		f.Close()
+		_ = f.Close()
 		if err != nil {
 			return nil, err
 		}

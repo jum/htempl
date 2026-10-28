@@ -256,7 +256,7 @@ func TestMapError(t *testing.T) {
 func TestWithDefaultEdgeCases(t *testing.T) {
 	m := make(map[string]interface{})
 	f := DefaultTemplFuncs["withDefault"].(func(map[string]interface{}, string, interface{}) map[string]interface{})
-	
+
 	m1 := f(m, "", "val")
 	if len(m1) != 0 {
 		t.Error("expected empty map for empty key")
@@ -272,11 +272,13 @@ func TestArrayMerge(t *testing.T) {
 	// Create temporary files for testing include merge
 	includeFile := "test_include_merge.yaml"
 	content := "list:\n  - item2\n"
-	err := os.WriteFile(includeFile, []byte(content), 0644)
+	err := os.WriteFile(includeFile, []byte(content), 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove(includeFile)
+	defer func() {
+		_ = os.Remove(includeFile)
+	}()
 
 	mainContent := `---
 include: test_include_merge.yaml
@@ -284,7 +286,7 @@ list:
   - item1
 ...
 {{range .list}}{{.}}{{end}}`
-	
+
 	tmpl, err := NewString("TestArrayMerge", mainContent)
 	if err != nil {
 		t.Fatal(err)
@@ -298,33 +300,33 @@ list:
 	// then it's merged into templ.Vars which ALREADY has item1 from the main header.
 	// Wait, let's re-read the code.
 	/*
-	if header != nil {
-		includeFiles, templateFiles, templ.Vars, err = processYamlVars(header)
-	}
-	for len(includeFiles) > 0 {
-		...
-		nincs, ntempls, nvars, err := processYamlVars(f)
-		...
-		for k, v := range nvars {
-			if oldval, ok := templ.Vars[k]; ok {
-				oldarray, isArrayOld := oldval.([]interface{})
-				newarray, isArrayNew := v.([]interface{})
-				if isArrayOld && isArrayNew {
-					templ.Vars[k] = append(oldarray, newarray...)
+		if header != nil {
+			includeFiles, templateFiles, templ.Vars, err = processYamlVars(header)
+		}
+		for len(includeFiles) > 0 {
+			...
+			nincs, ntempls, nvars, err := processYamlVars(f)
+			...
+			for k, v := range nvars {
+				if oldval, ok := templ.Vars[k]; ok {
+					oldarray, isArrayOld := oldval.([]interface{})
+					newarray, isArrayNew := v.([]interface{})
+					if isArrayOld && isArrayNew {
+						templ.Vars[k] = append(oldarray, newarray...)
+					} else {
+						templ.Vars[k] = v
+					}
 				} else {
 					templ.Vars[k] = v
 				}
-			} else {
-				templ.Vars[k] = v
 			}
 		}
-	}
 	*/
 	// Header is processed first, so templ.Vars["list"] = ["item1"]
 	// Then include file is processed, nvars["list"] = ["item2"]
 	// oldarray = ["item1"], newarray = ["item2"]
 	// templ.Vars["list"] = ["item1", "item2"]
-	
+
 	expected := "item1item2"
 	if buf.String() != expected {
 		t.Errorf("expected %q, got %q", expected, buf.String())
@@ -375,18 +377,20 @@ func TestVarOverwrite(t *testing.T) {
 	// Test overwriting non-array variables in include
 	includeFile := "test_include_overwrite.yaml"
 	content := "var: newvalue\n"
-	err := os.WriteFile(includeFile, []byte(content), 0644)
+	err := os.WriteFile(includeFile, []byte(content), 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove(includeFile)
+	defer func() {
+		_ = os.Remove(includeFile)
+	}()
 
 	mainContent := `---
 include: test_include_overwrite.yaml
 var: oldvalue
 ...
 {{.var}}`
-	
+
 	tmpl, err := NewString("TestVarOverwrite", mainContent)
 	if err != nil {
 		t.Fatal(err)
@@ -430,16 +434,20 @@ func TestNewWithTemplFuncs(t *testing.T) {
 }
 
 func TestNestedIncludes(t *testing.T) {
-	err := os.WriteFile("level2.yaml", []byte("val: final"), 0644)
+	err := os.WriteFile("level2.yaml", []byte("val: final"), 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove("level2.yaml")
-	err = os.WriteFile("level1.yaml", []byte("include: level2.yaml"), 0644)
+	defer func() {
+		_ = os.Remove("level2.yaml")
+	}()
+	err = os.WriteFile("level1.yaml", []byte("include: level2.yaml"), 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove("level1.yaml")
+	defer func() {
+		_ = os.Remove("level1.yaml")
+	}()
 
 	content := `---
 include: level1.yaml
@@ -471,11 +479,13 @@ Body`
 }
 
 func TestIncludeProcessYamlError(t *testing.T) {
-	err := os.WriteFile("invalid.yaml", []byte("[invalid"), 0644)
+	err := os.WriteFile("invalid.yaml", []byte("[invalid"), 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove("invalid.yaml")
+	defer func() {
+		_ = os.Remove("invalid.yaml")
+	}()
 
 	content := `---
 include: invalid.yaml
@@ -569,7 +579,10 @@ func TestSplitHeaderEOFWithoutNewline(t *testing.T) {
 		t.Fatal(err)
 	}
 	var buf bytes.Buffer
-	io.Copy(&buf, header)
+	_, err = io.Copy(&buf, header)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if buf.String() != "foo: bar" {
 		t.Errorf("expected 'foo: bar', got %q", buf.String())
 	}
@@ -582,8 +595,14 @@ func TestSplitHeaderNewlineNotEnd(t *testing.T) {
 		t.Fatal(err)
 	}
 	var hBuf, bBuf bytes.Buffer
-	io.Copy(&hBuf, header)
-	io.Copy(&bBuf, body)
+	_, err = io.Copy(&hBuf, header)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = io.Copy(&bBuf, body)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if hBuf.String() != "foo\nbar\n" {
 		t.Errorf("expected 'foo\nbar\n', got %q", hBuf.String())
 	}

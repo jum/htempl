@@ -51,7 +51,7 @@ func run() error {
 			return fmt.Errorf("%v: %w", *src, err)
 		}
 	}
-	// process the explicitely given command line args
+	// process the explicitly given command line args
 	for _, fname := range flag.Args() {
 		if *verbose {
 			fmt.Printf("working on %s\n", fname)
@@ -76,7 +76,7 @@ func processFile(fname string) error {
 		}
 	}
 	dname := filepath.Join(*dest, fname[0:len(fname)-len(ext)]+"."+*dsuffix)
-	out, err := os.Create(dname)
+	out, err := os.Create(dname) // #nosec G304 -- the same path above with new suffix
 	if err != nil {
 		return err
 	}

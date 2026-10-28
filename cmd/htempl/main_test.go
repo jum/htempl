@@ -11,20 +11,24 @@ func TestMainApp(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		_ = os.RemoveAll(tmpDir)
+	}()
 
 	cwd, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Chdir(cwd)
+	defer func() {
+		_ = os.Chdir(cwd)
+	}()
 	err = os.Chdir(tmpDir)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	srcFile := "test.htempl"
-	err = os.WriteFile(srcFile, []byte("---\nvar: value\n...\n{{.var}}"), 0644)
+	err = os.WriteFile(srcFile, []byte("---\nvar: value\n...\n{{.var}}"), 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,19 +79,23 @@ func TestMainSuccess(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		_ = os.RemoveAll(tmpDir)
+	}()
 
 	cwd, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Chdir(cwd)
+	defer func() {
+		_ = os.Chdir(cwd)
+	}()
 	err = os.Chdir(tmpDir)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = os.WriteFile("test.htempl", []byte("Body"), 0644)
+	err = os.WriteFile("test.htempl", []byte("Body"), 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -113,13 +121,23 @@ func TestProcessFileErrors(t *testing.T) {
 	})
 	t.Run("ExecuteError", func(t *testing.T) {
 		tmpDir, _ := os.MkdirTemp("", "htempl-exec-err")
-		defer os.RemoveAll(tmpDir)
+		defer func() {
+			_ = os.RemoveAll(tmpDir)
+		}()
 		fname := "test.htempl"
 		cwd, _ := os.Getwd()
-		defer os.Chdir(cwd)
-		os.Chdir(tmpDir)
-		os.WriteFile(fname, []byte(`{{map "only_one"}}`), 0644)
-		err := processFile(fname)
+		defer func() {
+			_ = os.Chdir(cwd)
+		}()
+		err := os.Chdir(tmpDir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = os.WriteFile(fname, []byte(`{{map "only_one"}}`), 0600)
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = processFile(fname)
 		if err == nil {
 			t.Error("expected execution error")
 		}
